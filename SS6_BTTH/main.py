@@ -1,5 +1,6 @@
 from fastapi import FastAPI, status, HTTPException,Request
 from pydantic import BaseModel
+
 from fastapi.responses import JSONResponse
 from datetime import datetime
 
@@ -10,6 +11,7 @@ promo_codes_db = {
     "SUMMER25": {"code": "SUMMER25", "discount_rate": 0.15, "max_budget": 50000000, "is_active": True},
     "WELCOME50": {"code": "WELCOME50", "discount_rate": 0.50, "max_budget": 10000000, "is_active": False}
 }
+
 
 # Model nội bộ chứa cả trường ngân sách chiến dịch nhạy cảm (Cấm lộ)
 class PromoInternal(BaseModel):
@@ -23,35 +25,43 @@ class PromoPublic (BaseModel):
     code: str
     discount_rate: float
 
-@app.get('/promos/{code})',response_model=PromoPublic,status_code=status.HTTP_200_OK)
-def get_promo(code:str):
-    if code not in promo_codes_db:
+
+@app.get('/promos/{code}',response_model=PromoPublic,status_code=status.HTTP_200_OK)
+def get_promo(code: str ):
+    if  code not  in promo_codes_db:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail='Mã giảm giá không tồn tại'
         )
     
-    product=promo_codes_db[code]
-    if product['is_active'] is False:
+    promo = promo_codes_db[code]
+    if promo['is_active'] is False:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code= status.HTTP_400_BAD_REQUEST ,
             detail='Mã giảm giá đã hết hạn sử dụng'
         )
     
-    return  {
-        'code':code,
-        'discount_rate':product['discount_rate']
+    return {
+        'code': code,
+        'discount_rate': promo['discount_rate']
     }
+
+"""
+ có 3 tầng:
+ tầng 1: lỗi do ng dùng ( requestvalidate)
+ tầng 2: do develope tự định nghĩa ra ( http)
+ tầng 3: do server những trường hợp nào mà k lường trc đc (exception)
+"""
 
 
 @app.exception_handler(HTTPException)
-def hanlde_execption(request: Request,exc:HTTPException):
+def hanlde_exception(request: Request, exc: HTTPException ):
     return JSONResponse(
         status_code= exc.status_code,
-        content ={
+        content={
             'statusCode': exc.status_code,
             'data': None,
-            'erroer': 'client_error' if exc.status_code<500 else 'server error',
+            'erroer': exc.detail,
             'message': exc.detail,
             'timestamp': datetime.now().isoformat(),
             'path': request.url.path

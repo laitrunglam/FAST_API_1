@@ -1,12 +1,7 @@
-from fastapi import FastAPI,HTTPException,status
+from fastapi import FastAPI,status,HTTPException
 from pydantic import BaseModel
 
-class Product(BaseModel):
-    id: int
-    quantity: int
-
 app=FastAPI()
-
 
 products_db = [
     {"id": 101, "name": "Bàn phím cơ", "stock": 5, "price": 1200000.0},
@@ -14,51 +9,49 @@ products_db = [
 ]
 orders_db = []
 
+class Product(BaseModel):
+    product_id : int
+    quantity: int
 
-@app.post('/orders',status_code=status.HTTP_201_CREATED)
-def add_order(product:Product):
+@app.post('/orders')
+def get_order(product:Product):
+
     is_flag=None
     for i in products_db:
-        if product.id == i['id']:
-            is_flag=i
+        if product.product_id == i['id']:
+            is_flag =i
             break
     
     if is_flag is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='k tim thay id trong kho'
+            detail='khong tim thay id'
         )
-    
-
-    if product.quantity<=0:
+    if product.quantity<0:
         raise HTTPException(
             status_code= status.HTTP_400_BAD_REQUEST,
-            detail='so luong mua k dc nho hon bang 0'
+            detail='loi so luong mua k dc nho hon 0'
         )
     
-    if product.quantity> is_flag['stock']:
+    if product.quantity > is_flag['stock']:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='so luong mua k dc lon hon ton kho'
+            status_code= status.HTTP_400_BAD_REQUEST,
+            detail='loi so luong dat mua lon hon ton kho'
         )
     
-    is_flag['stock']-=product.quantity
-    
-    new_product = {
-        'id' : len(orders_db)+1,
-        'product_id' : product.id,
+    is_flag["stock"]-= product.quantity
+    new_order = {
+        'id': len(orders_db)+1,
         'name': is_flag['name'],
         'quantity': product.quantity,
-        'price': is_flag['price']*product.quantity
+        'price': product.quantity * is_flag['price']
     }
 
-    orders_db.append(new_product)
+    orders_db.append(new_order)
     return{
-        'message':'da them don hang thanh cong',
-        'data': new_product
+        'message':'da them thanh cong',
+        'data': new_order
     }
+    
 
 
-@app.get('/course')
-def get_course():
-    return orders_db
