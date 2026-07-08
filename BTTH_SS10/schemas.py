@@ -8,8 +8,7 @@ class ShipmentRespone(BaseModel):
     tracking_number: str
     status: str
 
-    class config():
-        from_attributes=True
+  
         
 
     
